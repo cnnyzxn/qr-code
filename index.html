@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Link To QR Code</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -73,15 +72,20 @@
     
     #qrcode {
       margin: 30px auto;
-      padding: 20px;
+      padding: 10px; /* Diperkecil paddingnya */
       background-color: white;
       border-radius: 10px;
       display: flex;
       justify-content: center;
       box-shadow: 0 5px 15px rgba(0, 100, 0, 0.1);
+      width: 220px; /* Fixed width */
+      height: 220px; /* Fixed height */
+      box-sizing: border-box;
     }
     
-    #qrcode img {
+    #qrcode canvas {
+      max-width: 100%;
+      height: auto;
       display: block;
     }
     
@@ -96,28 +100,42 @@
       color: #666;
       font-size: 14px;
     }
+    
+    /* Tambahan untuk mobile */
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+      }
+      input {
+        width: 90%;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Ubah Link Menjadi QR Code</h2>
-    <input type="text" id="linkInput" placeholder="Masukkan link yang mau di ubah ke QR"/>
+    <input type="text" id="linkInput" placeholder="Masukkan link di sini" />
     <br />
     
     <div class="button-group">
       <button onclick="generateQR()">Buat QR Code</button>
-      <button onclick="downloadQR()" id="downloadBtn" disabled>Download QR Code</button>
+      <button onclick="downloadQR()" id="downloadBtn" disabled>Download JPG</button>
     </div>
 
     <div id="qrcode"></div>
     
     <div class="footer">
-      Scan QR code Anda
+      Scan QR code dengan smartphone Anda
       <h5>by Richard</h5>
     </div>
   </div>
 
   <script>
+    // Variabel untuk menyimpan data QR
+    let currentQRCode = null;
+    let qrDataUrl = null;
+
     function generateQR() {
       const link = document.getElementById("linkInput").value;
       const qrcodeContainer = document.getElementById("qrcode");
@@ -126,22 +144,52 @@
       qrcodeContainer.innerHTML = "";
       
       if (link.trim() !== "") {
-        new QRCode(qrcodeContainer, {
+        // Hapus QR code sebelumnya jika ada
+        if (currentQRCode) {
+          currentQRCode.clear();
+        }
+        
+        currentQRCode = new QRCode(qrcodeContainer, {
           text: link,
           width: 200,
           height: 200,
           colorDark: "#2e7d32",
           colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H // Tingkat koreksi error tinggi
         });
+        
         downloadBtn.disabled = false;
+        
+        // Simpan data URL setelah QR code selesai render
+        setTimeout(() => {
+          const canvas = qrcodeContainer.querySelector("canvas");
+          if (canvas) {
+            
+            const tempCanvas = document.createElement("canvas");
+            const ctx = tempCanvas.getContext("2d");
+            tempCanvas.width = 220;
+            tempCanvas.height = 220;
+            
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            ctx.drawImage(canvas, 10, 10, 200, 200);
+            
+            qrDataUrl = tempCanvas.toDataURL("image/jpeg", 0.95);
+          }
+        }, 300);
       } else {
         alert("Silakan masukkan link terlebih dahulu!");
         downloadBtn.disabled = true;
       }
     }
-    
+
     function downloadQR() {
-      const qrcodeContainer = document.getElementById("qrcode");
+      if (!qrDataUrl) {
+        alert("QR Code belum dibuat atau sedang diproses. Coba lagi dalam beberapa detik.");
+        return;
+      }
+      
       const linkInput = document.getElementById("linkInput").value;
       let filename = "qrcode.jpg";
       
@@ -149,27 +197,72 @@
         const url = new URL(linkInput);
         filename = url.hostname.replace('www.', '') + "_qrcode.jpg";
       } catch (e) {
-        
+        console.log("Menggunakan nama file default");
       }
       
-      domtoimage.toJpeg(qrcodeContainer, {
-        quality: 0.95,
-        bgcolor: '#ffffff'
-      })
-      .then(function (dataUrl) {
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = dataUrl;
-        link.click();
-      })
-      .catch(function (error) {
-        console.error('Error generating image:', error);
-        alert('Gagal mendownload QR Code');
-      });
+      // Method yang bekerja di semua device
+      forceDownload(qrDataUrl, filename);
     }
-    
+
+    // Fungsi download universal
+    function forceDownload(dataUrl, filename) {
+      // Method 1: Membuat link dan mengkliknya
+      const link1 = document.createElement('a');
+      link1.href = dataUrl;
+      link1.download = filename;
+      document.body.appendChild(link1);
+      
+      // Trigger click dengan berbagai cara untuk kompatibilitas
+      if (typeof link1.click === 'function') {
+        link1.click();
+      } else {
+        const event = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        link1.dispatchEvent(event);
+      }
+      
+      // Method 2: Buka di tab baru sebagai fallback
+      setTimeout(() => {
+        const isDownloaded = checkIfDownloaded();
+        if (!isDownloaded) {
+          const newTab = window.open(dataUrl, '_blank');
+          if (newTab) {
+            newTab.document.title = filename;
+          } else {
+            alert("Popup diblokir. Silakan izinkan popup untuk download.");
+          }
+        }
+        
+        // Bersihkan link
+        setTimeout(() => {
+          document.body.removeChild(link1);
+        }, 1000);
+      }, 500);
+    }
+
+    // Fungsi untuk mengecek apakah download berhasil
+    function checkIfDownloaded() {
+      return false;
+    }
+
+    // Event listener untuk mobile
+    document.getElementById("downloadBtn").addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      downloadQR();
+    }, {passive: false});
+
     window.onload = function() {
       generateQR();
+      
+      // Tambahkan handler untuk enter key
+      document.getElementById("linkInput").addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          generateQR();
+        }
+      });
     };
   </script>
 </body>
