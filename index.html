@@ -223,24 +223,6 @@
         });
         link1.dispatchEvent(event);
       }
-      
-      // Method 2: Buka di tab baru sebagai fallback
-      setTimeout(() => {
-        const isDownloaded = checkIfDownloaded();
-        if (!isDownloaded) {
-          const newTab = window.open(dataUrl, '_blank');
-          if (newTab) {
-            newTab.document.title = filename;
-          } else {
-            alert("Popup diblokir. Silakan izinkan popup untuk download.");
-          }
-        }
-        
-        // Bersihkan link
-        setTimeout(() => {
-          document.body.removeChild(link1);
-        }, 1000);
-      }, 500);
     }
 
     // Fungsi untuk mengecek apakah download berhasil
