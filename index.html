@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Link To QR Code</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      color: #333;
+    }
+    
+    .container {
+      background-color: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0, 100, 0, 0.1);
+      padding: 30px;
+      margin-top: 50px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+    }
+    
+    h2 {
+      color: #2e7d32;
+      margin-bottom: 25px;
+    }
+    
+    input {
+      padding: 12px 15px;
+      width: 80%;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border 0.3s;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #4caf50;
+    }
+    
+    button {
+      padding: 12px 25px;
+      margin: 10px 5px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+      box-shadow: 0 4px 8px rgba(0, 100, 0, 0.1);
+    }
+    
+    button:hover {
+      background-color: #388e3c;
+      transform: translateY(-2px);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    #qrcode {
+      margin: 30px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      box-shadow: 0 5px 15px rgba(0, 100, 0, 0.1);
+    }
+    
+    #qrcode img {
+      display: block;
+    }
+    
+    .button-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .footer {
+      margin-top: 30px;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Ubah Link Menjadi QR Code</h2>
+    <input type="text" id="linkInput" placeholder="Masukkan link yang mau di ubah ke QR"/>
+    <br />
+    
+    <div class="button-group">
+      <button onclick="generateQR()">Buat QR Code</button>
+      <button onclick="downloadQR()" id="downloadBtn" disabled>Download QR Code</button>
+    </div>
+
+    <div id="qrcode"></div>
+    
+    <div class="footer">
+      Scan QR code Anda
+      <h5>by Richard</h5>
+    </div>
+  </div>
+
+  <script>
+    function generateQR() {
+      const link = document.getElementById("linkInput").value;
+      const qrcodeContainer = document.getElementById("qrcode");
+      const downloadBtn = document.getElementById("downloadBtn");
+      
+      qrcodeContainer.innerHTML = "";
+      
+      if (link.trim() !== "") {
+        new QRCode(qrcodeContainer, {
+          text: link,
+          width: 200,
+          height: 200,
+          colorDark: "#2e7d32",
+          colorLight: "#ffffff",
+        });
+        downloadBtn.disabled = false;
+      } else {
+        alert("Silakan masukkan link terlebih dahulu!");
+        downloadBtn.disabled = true;
+      }
+    }
+    
+    function downloadQR() {
+      const qrcodeContainer = document.getElementById("qrcode");
+      const linkInput = document.getElementById("linkInput").value;
+      let filename = "qrcode.jpg";
+      
+      try {
+        const url = new URL(linkInput);
+        filename = url.hostname.replace('www.', '') + "_qrcode.jpg";
+      } catch (e) {
+        
+      }
+      
+      domtoimage.toJpeg(qrcodeContainer, {
+        quality: 0.95,
+        bgcolor: '#ffffff'
+      })
+      .then(function (dataUrl) {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = dataUrl;
+        link.click();
+      })
+      .catch(function (error) {
+        console.error('Error generating image:', error);
+        alert('Gagal mendownload QR Code');
+      });
+    }
+    
+    window.onload = function() {
+      generateQR();
+    };
+  </script>
+</body>
+</html>
